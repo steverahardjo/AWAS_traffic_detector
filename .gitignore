@@ -1,1 +1,11 @@
-/.data/
+.cache/
+.ipython/
+.DS_Store
+.vscode/
+.venv/
+.env/
+uv.lock
+.jupyter/
+
+
+/data
