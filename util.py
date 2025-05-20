@@ -11,7 +11,7 @@ import os
 load_dotenv()
 
 class kafkaProducer:
-    def __init__(self, csv_path: str, kafka_server: str, producer_id: str, topic: str, batch_interval: float = 5):
+    def __init__(self, csv_path: str, kafka_server: str, producer_id: int, topic: str, batch_interval: float = 5):
         """
         Initialize Kafka Producer with all necessary parameters.
         
@@ -24,8 +24,8 @@ class kafkaProducer:
         """
         # Load configuration from environment variables with fallback to provided values
         self.kafka_server = os.getenv('KAFKA_SERVER', kafka_server)
-        self.producer_id = os.getenv('PRODUCER_ID', producer_id)
-        self.topic = os.getenv('KAFKA_TOPIC', topic)
+        self.producer_id = producer_id
+        self.topic = topic
         self.batch_interval = batch_interval
         
         # Load data

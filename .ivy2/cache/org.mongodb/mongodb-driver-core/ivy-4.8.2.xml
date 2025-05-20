@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ivy-module version="2.0" xmlns:m="http://ant.apache.org/ivy/maven">
+	<info organisation="org.mongodb"
+		module="mongodb-driver-core"
+		revision="4.8.2"
+		status="release"
+		publication="20230112180020"
+	>
+		<license name="The Apache License, Version 2.0" url="http://www.apache.org/licenses/LICENSE-2.0.txt" />
+		<description homepage="https://www.mongodb.com/">
+		The Java operations layer for the MongoDB Java Driver.
+ Third parties can wrap this layer to provide custom higher-level APIs
+		</description>
+		<m:dependency.management__io.netty__netty-buffer__version>4.1.84.Final</m:dependency.management__io.netty__netty-buffer__version>
+		<m:dependency.management__io.netty__netty-codec__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec__version>
+		<m:dependency.management__io.netty__netty-codec-dns__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-dns__version>
+		<m:dependency.management__io.netty__netty-codec-haproxy__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-haproxy__version>
+		<m:dependency.management__io.netty__netty-codec-http__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-http__version>
+		<m:dependency.management__io.netty__netty-codec-http2__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-http2__version>
+		<m:dependency.management__io.netty__netty-codec-memcache__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-memcache__version>
+		<m:dependency.management__io.netty__netty-codec-mqtt__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-mqtt__version>
+		<m:dependency.management__io.netty__netty-codec-redis__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-redis__version>
+		<m:dependency.management__io.netty__netty-codec-smtp__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-smtp__version>
+		<m:dependency.management__io.netty__netty-codec-socks__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-socks__version>
+		<m:dependency.management__io.netty__netty-codec-stomp__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-stomp__version>
+		<m:dependency.management__io.netty__netty-codec-xml__version>4.1.84.Final</m:dependency.management__io.netty__netty-codec-xml__version>
+		<m:dependency.management__io.netty__netty-common__version>4.1.84.Final</m:dependency.management__io.netty__netty-common__version>
+		<m:dependency.management__io.netty__netty-dev-tools__version>4.1.84.Final</m:dependency.management__io.netty__netty-dev-tools__version>
+		<m:dependency.management__io.netty__netty-handler__version>4.1.84.Final</m:dependency.management__io.netty__netty-handler__version>
+		<m:dependency.management__io.netty__netty-handler-proxy__version>4.1.84.Final</m:dependency.management__io.netty__netty-handler-proxy__version>
+		<m:dependency.management__io.netty__netty-resolver__version>4.1.84.Final</m:dependency.management__io.netty__netty-resolver__version>
+		<m:dependency.management__io.netty__netty-resolver-dns__version>4.1.84.Final</m:dependency.management__io.netty__netty-resolver-dns__version>
+		<m:dependency.management__io.netty__netty-transport__version>4.1.84.Final</m:dependency.management__io.netty__netty-transport__version>
+		<m:dependency.management__io.netty__netty-transport-rxtx__version>4.1.84.Final</m:dependency.management__io.netty__netty-transport-rxtx__version>
+		<m:dependency.management__io.netty__netty-transport-sctp__version>4.1.84.Final</m:dependency.management__io.netty__netty-transport-sctp__version>
+		<m:dependency.management__io.netty__netty-transport-udt__version>4.1.84.Final</m:dependency.management__io.netty__netty-transport-udt__version>
+		<m:dependency.management__io.netty__netty-example__version>4.1.84.Final</m:dependency.management__io.netty__netty-example__version>
+		<m:dependency.management__io.netty__netty-all__version>4.1.84.Final</m:dependency.management__io.netty__netty-all__version>
+		<m:dependency.management__io.netty__netty-resolver-dns-classes-macos__version>4.1.84.Final</m:dependency.management__io.netty__netty-resolver-dns-classes-macos__version>
+		<m:dependency.management__io.netty__netty-resolver-dns-native-macos__version>4.1.84.Final</m:dependency.management__io.netty__netty-resolver-dns-native-macos__version>
+		<m:dependency.management__io.netty__netty-transport-native-unix-common__version>4.1.84.Final</m:dependency.management__io.netty__netty-transport-native-unix-common__version>
+		<m:dependency.management__io.netty__netty-transport-classes-epoll__version>4.1.84.Final</m:dependency.management__io.netty__netty-transport-classes-epoll__version>
+		<m:dependency.management__io.netty__netty-transport-native-epoll__version>4.1.84.Final</m:dependency.management__io.netty__netty-transport-native-epoll__version>
+		<m:dependency.management__io.netty__netty-transport-classes-kqueue__version>4.1.84.Final</m:dependency.management__io.netty__netty-transport-classes-kqueue__version>
+		<m:dependency.management__io.netty__netty-transport-native-kqueue__version>4.1.84.Final</m:dependency.management__io.netty__netty-transport-native-kqueue__version>
+		<m:dependency.management__io.netty__netty-tcnative-classes__version>2.0.54.Final</m:dependency.management__io.netty__netty-tcnative-classes__version>
+		<m:dependency.management__io.netty__netty-tcnative__version>2.0.54.Final</m:dependency.management__io.netty__netty-tcnative__version>
+		<m:dependency.management__io.netty__netty-tcnative-boringssl-static__version>2.0.54.Final</m:dependency.management__io.netty__netty-tcnative-boringssl-static__version>
+	</info>
+	<configurations>
+		<conf name="default" visibility="public" description="runtime dependencies and master artifact can be used with this conf" extends="runtime,master"/>
+		<conf name="master" visibility="public" description="contains only the artifact published by this module itself, with no transitive dependencies"/>
+		<conf name="compile" visibility="public" description="this is the default scope, used if none is specified. Compile dependencies are available in all classpaths."/>
+		<conf name="provided" visibility="public" description="this is much like compile, but indicates you expect the JDK or a container to provide it. It is only available on the compilation classpath, and is not transitive."/>
+		<conf name="runtime" visibility="public" description="this scope indicates that the dependency is not required for compilation, but is for execution. It is in the runtime and test classpaths, but not the compile classpath." extends="compile"/>
+		<conf name="test" visibility="public" description="this scope indicates that the dependency is not required for normal use of the application, and is only available for the test compilation and execution phases." extends="runtime"/>
+		<conf name="system" visibility="public" description="this scope is similar to provided except that you have to provide the JAR which contains it explicitly. The artifact is always available and is not looked up in a repository."/>
+		<conf name="sources" visibility="public" description="this configuration contains the source artifact of this module, if any."/>
+		<conf name="javadoc" visibility="public" description="this configuration contains the javadoc artifact of this module, if any."/>
+		<conf name="optional" visibility="public" description="contains all optional dependencies"/>
+	</configurations>
+	<publications>
+		<artifact name="mongodb-driver-core" type="jar" ext="jar" conf="master"/>
+	</publications>
+	<dependencies>
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.7.6" force="true" conf="optional->compile(*),master(*)"/>
+		<dependency org="org.mongodb" name="bson" rev="4.8.2" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+		<dependency org="io.netty" name="netty-buffer" rev="4.1.84.Final" force="true" conf="optional->compile(*),master(*)"/>
+		<dependency org="io.netty" name="netty-transport" rev="4.1.84.Final" force="true" conf="optional->compile(*),master(*)"/>
+		<dependency org="io.netty" name="netty-handler" rev="4.1.84.Final" force="true" conf="optional->compile(*),master(*)"/>
+		<dependency org="org.mongodb" name="bson-record-codec" rev="4.8.2" force="true" conf="runtime->compile(*),runtime(*),master(*)"/>
+		<dependency org="com.github.jnr" name="jnr-unixsocket" rev="0.38.17" force="true" conf="optional->compile(*),provided(*),master(*)"/>
+		<dependency org="software.amazon.awssdk" name="auth" rev="2.18.9" force="true" conf="optional->compile(*),provided(*),master(*)"/>
+		<dependency org="software.amazon.awssdk" name="sts" rev="2.18.9" force="true" conf="optional->compile(*),provided(*),master(*)"/>
+		<dependency org="com.amazonaws" name="aws-java-sdk-core" rev="1.12.337" force="true" conf="optional->compile(*),provided(*),master(*)"/>
+		<dependency org="com.amazonaws" name="aws-java-sdk-sts" rev="1.12.337" force="true" conf="optional->compile(*),provided(*),master(*)"/>
+		<dependency org="org.xerial.snappy" name="snappy-java" rev="1.1.8.4" force="true" conf="optional->compile(*),provided(*),master(*)"/>
+		<dependency org="com.github.luben" name="zstd-jni" rev="1.5.2-5" force="true" conf="optional->compile(*),provided(*),master(*)"/>
+		<dependency org="org.mongodb" name="mongodb-crypt" rev="1.6.1" force="true" conf="optional->compile(*),provided(*),master(*)"/>
+		<override org="io.netty" module="netty-buffer" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-dns" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-haproxy" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-http" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-http2" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-memcache" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-mqtt" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-redis" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-smtp" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-socks" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-stomp" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-codec-xml" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-common" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-dev-tools" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-handler" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-handler-proxy" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-resolver" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-resolver-dns" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-transport" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-transport-rxtx" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-transport-sctp" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-transport-udt" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-example" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-all" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-resolver-dns-classes-macos" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-resolver-dns-native-macos" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-transport-native-unix-common" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-transport-classes-epoll" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-transport-native-epoll" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-transport-classes-kqueue" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-transport-native-kqueue" matcher="exact" rev="4.1.84.Final"/>
+		<override org="io.netty" module="netty-tcnative-classes" matcher="exact" rev="2.0.54.Final"/>
+		<override org="io.netty" module="netty-tcnative" matcher="exact" rev="2.0.54.Final"/>
+		<override org="io.netty" module="netty-tcnative-boringssl-static" matcher="exact" rev="2.0.54.Final"/>
+	</dependencies>
+</ivy-module>
