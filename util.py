@@ -8,8 +8,6 @@ from dotenv import load_dotenv
 import pandas as pd
 import os
 
-load_dotenv()
-
 class kafkaProducer:
     def __init__(self, csv_path: str, kafka_server: str, producer_id: int, topic: str, batch_interval: float = 5):
         """
@@ -23,7 +21,7 @@ class kafkaProducer:
             batch_interval (float, optional): Time between batches in seconds. Defaults to 5
         """
         # Load configuration from environment variables with fallback to provided values
-        self.kafka_server = os.getenv('KAFKA_SERVER', kafka_server)
+        self.kafka_server = kafka_server
         self.producer_id = producer_id
         self.topic = topic
         self.batch_interval = batch_interval
@@ -49,7 +47,8 @@ class kafkaProducer:
                 value_serializer=lambda v: json.dumps(v).encode('utf-8'),
                 key_serializer=lambda k: k.encode('utf-8')
             )
-            print(f"[INFO] Successfully connected to Kafka at {self.kafka_server}")
+            print(f"print {self.kafka_server}")
+
         except Exception as e:
             print(f"[ERROR] Failed to connect to Kafka at {self.kafka_server}: {e}")
             raise
@@ -59,6 +58,7 @@ class kafkaProducer:
         Iterate through each batch_id in order, wrap each record
         as a dict + producer tag, and send to Kafka. Then sleep.
         """
+        print(self.kafka_server)
         for batch_id in sorted(self.df['batch_id'].unique()):
             batch_df = self.df[self.df['batch_id'] == batch_id]
             print(f"[INFO] Publishing batch #{batch_id} ({len(batch_df)} records)...")
@@ -92,6 +92,7 @@ class kafkaProducer:
         self.producer.flush()
         self.producer.close()
         print("[INFO] Producer finished and closed")
+
 
 class kafkaConsumer:
     """
