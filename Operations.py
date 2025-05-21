@@ -13,8 +13,6 @@ from pyspark.sql.functions import (
     col, expr, from_json
 )
 import uuid
-import dotenv
-dotenv.load_dotenv() 
 
 class SparkInst:
     def __init__(self, app_name: str, batch_interval: int, kafka_output_topic: str):
@@ -64,7 +62,6 @@ class SparkInst:
 
         Args:
             sdf (DataFrame): Spark DataFrame
-            topic_id (str): Topic identifier ("A", "B", or "C")
 
         Returns:
             Broadcast variable containing a set of camera_ids

@@ -4,7 +4,6 @@ from kafka3 import KafkaProducer, KafkaConsumer
 from datetime import datetime as dt
 from pymongo import MongoClient
 from pyspark.sql import Row
-from dotenv import load_dotenv
 import pandas as pd
 import os
 

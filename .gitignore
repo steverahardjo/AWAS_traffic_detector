@@ -9,3 +9,8 @@ uv.lock
 
 
 /data
+.ivy2/
+.config/
+
+/__pycache__
+/.ivy2
