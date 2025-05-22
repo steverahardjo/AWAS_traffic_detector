@@ -18,3 +18,6 @@ uv.lock
 # Ignore Jupyter Notebook autosave checkpoints
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
+/_spark_metadata
+checkpoint/
+.local/

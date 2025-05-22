@@ -53,10 +53,8 @@ class SparkInst:
             .withWatermark("sent_at", watermark_time)
         )
     
-    def _SparkContext(self):
-        return self.spark.sparkContext
 
-    def essentialData_broadcast(self, df:pd.DataFrame):
+    def essentialData_broadcast(self, sdf):
         """
         Filter a Spark DataFrame by topic_id and broadcast it.
 
@@ -64,13 +62,18 @@ class SparkInst:
             sdf (DataFrame): Spark DataFrame
 
         Returns:
-            Broadcast variable containing a set of camera_ids
+            Broadcast variable containing a dictionary of camera_id to speed_limit
         """
-        df_filtered=df[["camera_id", "speed_limit"]]
+        # Select necessary columns
+        df_filtered = sdf.select("camera_id", "speed_limit")
 
-        # Broadcast the speed limit (an int)
-        spark_context = self._sparkContext()
-        return spark_context.broadcast(df_filtered)
+        # Convert to a Python dictionary (camera_id -> speed_limit)
+        data = df_filtered.rdd.map(lambda row: (row["camera_id"], row["speed_limit"])).collectAsMap()
+
+        # Broadcast the dictionary
+        spark_context = self.spark.sparkContext
+        return spark_context.broadcast(data)
+
 
 
 class DbWriter:
