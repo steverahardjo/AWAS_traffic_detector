@@ -13,7 +13,7 @@ uv.lock
 .config/
 
 /__pycache__
-/.ivy2
+.ivy2
 /.local
 # Ignore Jupyter Notebook autosave checkpoints
 .ipynb_checkpoints/

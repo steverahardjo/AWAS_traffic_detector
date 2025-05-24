@@ -36,6 +36,7 @@ class SparkInst:
                         .add("producer", StringType()) \
                         .add("sent_at", TimestampType())
         self.spark = SparkSession.builder.appName(app_name).master("local[*]").getOrCreate()
+        
 
     def get_session(self):
         return self.spark
