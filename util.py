@@ -73,9 +73,9 @@ class kafkaProducer:
                 # Ensure timestamp is serializable
                 event['timestamp'] = event['timestamp'].isoformat()
                 # Tag with producer identity
-                event['producer_id'] = self.producer_id
+                #event['producer_id'] = self.producer_id
                 # Record when the batch is sent exactly
-                event['sent_at'] = dt.datetime.now().isoformat()
+                #event['sent_at'] = dt.datetime.now().isoformat()
 
                 try:
                     self.producer.send(
@@ -150,7 +150,6 @@ class kafkaConsumer:
                 try:
                     message_value = message.value
                     print(f"[INFO] Received message: {message_value}")
-                    # Add your message processing logic here
                     
                 except Exception as msg_error:
                     print(f"[WARN] Error processing message: {msg_error}")
@@ -173,78 +172,3 @@ class kafkaConsumer:
                 print("[INFO] Kafka consumer connection closed")
             except Exception as e:
                 print(f"[WARN] Error closing consumer: {e}")
-
-
-
-class Plotter:
-    def __init__(self, width=9.5, height=6, title='Real-time stream data visualization'):
-        self.width = width
-        self.height = height
-        self.title = title
-
-        try:
-            # Create figure and axis
-            self.fig, self.ax = plt.subplots(figsize=(self.width, self.height))
-            self.ax.set_xlabel('Time')
-            self.ax.set_ylabel('Value')
-            self.ax.set_title(self.title)
-
-            # Display the figure
-            self.fig.show()
-            self.fig.canvas.draw()
-
-        except Exception as ex:
-            print(f"Error initializing plot: {str(ex)}")
-
-    def get_axis(self):
-        return self.ax
-
-    def get_figure(self):
-        return self.fig
-    
-    def add_min_max(self, x_data:List[int], y_data:List[int]):
-        min_y = min(y_data)
-        max_y = max(y_data)
-        ypos_min=y_data.index(min_y)
-        ypos_max=y_data.index(max_y)
-        self.ax.annotate(f'Min: {min_y}', xy=(0, min_y), xytext=(0, min_y-10))      
-        self.ax.annotate(f'Max: {max_y}', xy=(0, max_y), xytext=(0, max_y+10))
-
-    def stream_asPlot(self, consumer: KafkaConsumer):
-        
-        hour_counts = Counter()
-
-        if consumer:
-            for message in consumer.consume_messages():
-                # Parse and truncate timestamp to the hour
-                dt_obj = datetime.fromisoformat(message["timestamp_start"])
-                dt_hour = dt_obj.replace(minute=0, second=0, microsecond=0)
-                
-                # Update count for the hour
-                hour_counts[dt_hour] += 1
-
-                # Optional: Real-time plot update (simplified version)
-                hours_sorted = sorted(hour_counts)
-                counts_sorted = [hour_counts[hr] for hr in hours_sorted]
-
-                self.ax1.clear()
-                self.ax1.plot(hours_sorted, counts_sorted, marker='o', label="Violations")
-                self.ax1.set_title("Violations per Hour")
-                self.ax1.set_xlabel("Hour")
-                self.ax1.set_ylabel("Count")
-                self.ax1.tick_params(axis='x', rotation=45)
-                self.ax1.legend()
-                self.add_min_max(hours_sorted, counts_sorted)
-                self.fig.canvas.draw()
-                self.fig.canvas.flush_events()
-
-                if len(hours_sorted) > 10 and len(counts_sorted) > 10:
-                    plt.pause(0.1)
-                    hours_sorted.pop(0)
-                    counts_sorted.pop(0)
-                
-
-    
-                    
-
-

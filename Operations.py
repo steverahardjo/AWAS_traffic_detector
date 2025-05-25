@@ -4,7 +4,7 @@ os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming
 from pymongo import MongoClient
 import datetime
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, split, element_at, when, broadcast
+from pyspark.sql.functions import col
 
 from pyspark.sql.types import (
     StructType, StringType, IntegerType, DoubleType, TimestampType
@@ -24,6 +24,7 @@ class SparkInst:
             batch_interval (int): The interval (in seconds) at which streaming data is processed.
             kafka_topic (str): The name of the Kafka topic to consume from.
         """
+        os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-10_2.12:3.3.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.mongodb.spark:mongo-spark-connector_2.12:10.1.1 pyspark-shell'
         self.batch_interval = batch_interval
         self.kafka_output_topic = kafka_output_topic
         self.eventSchema= StructType() \

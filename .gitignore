@@ -21,3 +21,17 @@ uv.lock
 /_spark_metadata
 checkpoint/
 .local/
+/data
+stream_checkpoints_3/
+result.csv/
+result.json/
+result.txt/
+result.jsonl/
+result.jsonl.gz/
+result.jsonl.gz.part/
+result.jsonl.gz.part.1/
+
+.local/
+.ipynb_checkpoints/
+
+data/
