@@ -33,7 +33,7 @@ class SparkInst:
                         .add("camera_id", IntegerType()) \
                         .add("timestamp", TimestampType()) \
                         .add("speed_reading", DoubleType()) \
-                        .add("producer", StringType()) \
+                        .add("producer_id", StringType()) \
                         .add("sent_at", TimestampType())
         self.spark = SparkSession.builder.appName(app_name).master("local[*]").getOrCreate()
         
@@ -41,11 +41,11 @@ class SparkInst:
     def get_session(self):
         return self.spark
     
-    def attach_kafka_stream(self, topic_name:str, hostip:str, watermark_time:str):
+    def attach_kafka_stream(self, topic_name:str, hostip:str, watermark_time:str,port:int):
         return (
             self.spark.readStream
             .format("kafka")
-            .option("kafka.bootstrap.servers", f"{hostip}:9092")
+            .option("kafka.bootstrap.servers", f"{hostip}:{port}")
             .option("subscribe", topic_name)
             .load()
             .selectExpr("CAST(value AS STRING) as json")
@@ -91,36 +91,30 @@ class DbWriter:
             mongo_db (str): The name of the MongoDB database.
             mongo_collection (str): The name of the MongoDB collection for violations.
         """
-        self.spark = spark # Keep spark, even if not used.
+        self.spark = spark
         self.mongo_uri = mongo_uri
         self.mongo_db_name = mongo_db
         self.violation_collection_name = mongo_collection
-        self.mongo_client = None  # Initialize in open()
-        self.db = None          # Initialize in open()
-        self.violation_coll = None  # Initialize in open()
+        self.mongo_client = None
+        self.db = None
+        self.violation_coll = None
 
-    def open(self, partition_id:str, epoch_id:str)->bool:
+    def open(self, partition_id: str, epoch_id: str) -> bool:
         """
-        Open a connection to MongoDB.  Called at the start of each partition.
-
-        Args:
-            partition_id: The ID of the partition.
-            epoch_id: The ID of the epoch.
-
-        Returns:
-            bool: True if the connection is successfully opened.
+        Open a connection to MongoDB. Called at the start of each partition.
         """
         self.mongo_client = MongoClient(self.mongo_uri)
         self.db = self.mongo_client[self.mongo_db_name]
         self.violation_coll = self.db[self.violation_collection_name]
         return True
+    
+    def process(self, row):
+        data = row.asDict()
+        print(f"\ncurrent data: {data}")
 
-    def close(self, err:str)->None:
+    def close(self, err: str) -> None:
         """
-        Close the connection to MongoDB.  Called at the end of processing.
-
-        Args:
-            err: Any error that occurred during processing.  If None, processing was successful.
+        Close the connection to MongoDB. Called at the end of processing.
         """
         if self.mongo_client:
             self.mongo_client.close()
@@ -128,10 +122,6 @@ class DbWriter:
     def add_violation(self, data, speed_limit, speed_reading):
         """
         Adds a violation record to the MongoDB collection.
-
-        Args:
-            data:  A dictionary containing the violation data.
-            speed_limit: The speed limit for the violation.
         """
         ts = data["timestamp"]
         if isinstance(ts, str):
@@ -147,30 +137,64 @@ class DbWriter:
             "speed_limit": speed_limit,
         }
 
-        existing_violation = self.violation_coll.find_one( # Use self.violation_coll
+        existing_violation = self.violation_coll.find_one(
             {"car_plate": data["car_plate"], "date": date_bucket}
         )
 
         if existing_violation:
-            original_violations = existing_violation["violations"]
-            original_violations.append(violation)
-            self.violation_coll.update_one(  # Use self.violation_coll
+            original = existing_violation["violations"]
+            original.append(violation)
+            self.violation_coll.update_one(
                 {"car_plate": data["car_plate"], "date": date_bucket},
-                {"$set": {"violations": original_violations}},
+                {"$set": {"violations": original}},
             )
-            print(f"Added violation to car_plate {data['car_plate']} at {date_bucket}")
+            print(f"[MongoDB] Appended violation for {data['car_plate']} on {date_bucket}")
         else:
-            self.violation_coll.insert_one( # Use self.violation_coll
-                {
-                    "violation_id": str(uuid.uuid4()),
-                    "car_plate": data["car_plate"],
-                    "date": date_bucket,
-                    "violations": [violation],
-                }
-            )
+            self.violation_coll.insert_one({
+                "violation_id": str(uuid.uuid4()),
+                "car_plate": data["car_plate"],
+                "date": date_bucket,
+                "violations": [violation],
+            })
+            print(f"[MongoDB] Inserted new violation record for {data['car_plate']} on {date_bucket}")
 
 
+class ConsoleWriter:
+
+    def open(self, partition_id: str, epoch_id: str) -> bool:
+        """
+        Called at the start of each partition.
+        """
+        print(f"[ConsoleWriter] Open partition {partition_id}, epoch {epoch_id}")
+        return True
     
+    def process(self, row):
+        data = row.asDict()
+        print(f"\ncurrent data: {data}")
+
+    def close(self, err: str) -> None:
+        """
+        Called at the end of processing.
+        """
+        if err:
+            print(f"[ConsoleWriter] Closing with error: {err}")
+        else:
+            print(f"[ConsoleWriter] Closing successfully")
+
+    def add_violation(self, data, speed_limit, speed_reading):
+        """
+        Prints a violation record to the terminal.
+        """
+        ts = data.get("timestamp")
+        if isinstance(ts, str):
+            ts = datetime.fromisoformat(ts)
+        camera = data.get("camera_id")
+        plate = data.get("car_plate")
+        print(
+            "[ConsoleWriter] Violation detected - "
+            f"plate={plate}, camera={camera}, time={ts}, "
+            f"speed={speed_reading}km/h, limit={speed_limit}km/h"
+        )
 
 
 

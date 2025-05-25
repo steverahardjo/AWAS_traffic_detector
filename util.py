@@ -8,7 +8,7 @@ import pandas as pd
 import os
 
 class kafkaProducer:
-    def __init__(self, csv_path: str, kafka_server: str, producer_id: int, topic: str, batch_interval: float = 5):
+    def __init__(self, csv_path: str, kafka_server: str, producer_id: str, topic: str, batch_interval: float = 5):
         """
         Initialize Kafka Producer with all necessary parameters.
         
