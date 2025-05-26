@@ -12,7 +12,7 @@ uv.lock
 .ivy2/
 .config/
 
-/__pycache__
+/__pycache__/
 .ivy2
 /.local
 # Ignore Jupyter Notebook autosave checkpoints
@@ -35,3 +35,5 @@ result.jsonl.gz.part.1/
 .ipynb_checkpoints/
 
 data/
+.ivy2/
+
