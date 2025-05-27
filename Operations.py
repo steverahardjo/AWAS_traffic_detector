@@ -107,8 +107,18 @@ class SparkInst:
 
 
 
-class DbWriter():
-    def __init__(self, mongo_host, mongo_port, mongo_db, mongo_coll):
+class DbWriter:
+    def __init__(self, mongo_host:str, mongo_port:int, mongo_db:str, mongo_coll:str):
+        """
+        This is the DbWriter implemented to be in line with the pySpark's forEach() inside sink writer.
+        This class is created so that pySpark session enabled to write data by initialized a 
+        pyMongo client access to a DB and a Collection.
+        Input:
+            mongo_host: ip address where mongoDB is located.
+            mongo port: port to access mongoDB
+            mongo_db: the name of mongo database inside the client
+            mongo_coll: mongo collection we want to insert into
+        """
         self.mongo_host = mongo_host
         self.mongo_port = mongo_port
         self.mongo_db   = mongo_db
@@ -117,17 +127,42 @@ class DbWriter():
         self.violation_coll  = None
 
     def open(self, partition_id: str, epoch_id: str) -> bool:
+        """
+        Establlish a connection with a MongoDB client. This function going to auto-triggered park 
+        Structured Streaming at the start of processing a new partition for a given epoch.
+        We reuse the parameters being uploaded in function __init__()
+        """
         self.client = MongoClient(host=self.mongo_host, port=self.mongo_port)
         self.violation_coll  = self.client[self.mongo_db][self.mongo_coll]
         return True
 
     def process(self, row)-> None:
+        """
+        Processes a single row of streaming data to detect and log traffic speed violations.
+
+        This method is invoked for each row in a Spark Structured Streaming batch. It checks
+        for both instantaneous and average speed violations captured by three cameras (A, B, C),
+        and stores the violations in a MongoDB collection grouped by car plate and date.
+
+        The steps include:
+        - Parsing timestamps to ensure correct datetime format.
+        - Detecting instantaneous violations at each camera.
+        - Detecting average speed violations between camera pairs (A-B and B-C).
+        - Organizing violations by the date bucket (per day).
+        - Checking if a document for the car and date already exists:
+            - If yes, append new violations.
+            - If no, insert a new document.
+            
+        Input:
+            row : pyspark.sql.Row
+        """
         try:
             print(f"\nProcessing: {row.asDict()}")
             t_a = row.timestamp_a
             t_b = row.timestamp_b
             t_c = row.timestamp_c
-
+            
+            #process in to a isofromat datetime
             if isinstance(t_a, str):
                 t_a = datetime.fromisoformat(t_a)
 
@@ -136,7 +171,8 @@ class DbWriter():
 
             if isinstance(t_c, str):
                 t_c = datetime.fromisoformat(t_c)
-
+                
+            #convert isoformat datetime to a date
             date_bucket_a = datetime(t_a.year, t_a.month, t_a.day)
             date_bucket_b = datetime(t_b.year, t_b.month, t_b.day)
             date_bucket_c = datetime(t_c.year, t_c.month, t_c.day)
@@ -144,7 +180,8 @@ class DbWriter():
             violations_a = []
             violations_b = []
             violations_c = []
-
+            
+            #if condition for instant violation in camera A
             if row.speed_flag_instant_a:
                 violations_a.append({
                     "violation_id": str(uuid.uuid4()),
@@ -155,6 +192,8 @@ class DbWriter():
                     "timestamp_end": None,
                     "measured_speed": row.speed_reading_a
                 })
+                
+            #if condition for instant violation in camera B
             if row.speed_flag_instant_b:
                 violations_b.append({
                     "violation_id": str(uuid.uuid4()),
@@ -165,6 +204,8 @@ class DbWriter():
                     "timestamp_end": None,
                     "measured_speed": row.speed_reading_b
                 })
+                
+            #if condition for instant violation in camera C
             if row.speed_flag_instant_c:
                 violations_c.append({
                     "violation_id": str(uuid.uuid4()),
@@ -175,6 +216,8 @@ class DbWriter():
                     "timestamp_end": None,
                     "measured_speed": row.speed_reading_c
                 })
+                
+            #if condition for average violation between camera A and B
             if row.speed_flag_average_ab:
                 violations_b.append({
                     "violation_id": str(uuid.uuid4()),
@@ -185,6 +228,8 @@ class DbWriter():
                     "timestamp_end": t_b,
                     "measured_speed": row.avg_speed_reading_ab
                 })
+                
+            #if condition for average violation between camera A and B
             if row.speed_flag_average_bc:
                 violations_c.append({
                     "violation_id": str(uuid.uuid4()),
@@ -195,7 +240,7 @@ class DbWriter():
                     "timestamp_end": t_c,
                     "measured_speed": row.avg_speed_reading_bc
                 })
-
+            #update violation in time A, if search through collection with car_plate and date it exist.
             existing_a = self.violation_coll.find_one({"car_plate": row.car_plate, "date": date_bucket_a})
             if existing_a and len(violations_a) > 0:
                 for violation in violations_a:
@@ -204,6 +249,7 @@ class DbWriter():
                         {"car_plate": row.car_plate, "date": date_bucket_a},
                         {"$set": {"violations": existing_a["violations"]}},
                     )
+            
             elif len(violations_a) > 0:
                 self.violation_coll.insert_one(
                     {
@@ -212,7 +258,7 @@ class DbWriter():
                         "violations":   violations_a
                     }
                 )
-
+            #update violation in time B, if search through collection with car_plate and date it exist.
             existing_b = self.violation_coll.find_one({"car_plate": row.car_plate, "date": date_bucket_b})
             if existing_b and len(violations_b) > 0:
                 for violation in violations_b:
@@ -221,6 +267,7 @@ class DbWriter():
                         {"car_plate": row.car_plate, "date": date_bucket_b},
                         {"$set": {"violations": existing_b["violations"]}},
                     )
+            # if not, create a new collection with all the violations we can get inside
             elif len(violations_b) > 0:
                 self.violation_coll.insert_one(
                     {
@@ -229,7 +276,7 @@ class DbWriter():
                         "violations":   violations_b
                     }
                 )
-
+            #update violation in time C, if search through collection with car_plate and date it exist.
             existing_c = self.violation_coll.find_one({"car_plate": row.car_plate, "date": date_bucket_c})                                    
             if existing_c and len(violations_c) > 0:
                 for violation in violations_c:
@@ -238,6 +285,7 @@ class DbWriter():
                         {"car_plate": row.car_plate, "date": date_bucket_c},
                         {"$set": {"violations": existing_c["violations"]}},
                     )
+            # if not, create a new collection with all the violations we can get inside
             elif len(violations_c) > 0:
                 self.violation_coll.insert_one(
                     {
@@ -246,13 +294,11 @@ class DbWriter():
                         "violations":   violations_c
                     }
                 )
-#             print(f"\nAdded violations: {sum([len(violations_a),len(violations_b),len(violations_c)])}")
             if sum([len(violations_a),len(violations_b),len(violations_c)]) == 0 :
                    print("No violations detected for {row.car_plate} from {t_a} to {t_c}")
         except Exception as e:
             # this will print on the executor logs
             print(f"[DbWriter][ERROR] failed to process row {row}: {e}")
-            # optionally, you could write to a dead‐letter collection instead
                                                   
     def close(self, error):
         if error:

@@ -120,7 +120,7 @@ class kafkaConsumer:
                 self.kafka_topic,
                 bootstrap_servers=[self.hostip],
                 api_version=(0, 10),
-                value_deserializer=lambda x: loads(x.decode('ascii')),
+                value_deserializer=lambda x: json.loads(x.decode('ascii')),
                 auto_offset_reset=self.offset_time,
                 group_id=self.consumer_id,
                 enable_auto_commit=True
