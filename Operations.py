@@ -7,10 +7,10 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
 
 from pyspark.sql.types import (
-    StructType, StringType, IntegerType, DoubleType, TimestampType, BooleanType
+    StructType, StringType, IntegerType, DoubleType, TimestampType
 )
 from pyspark.sql.functions import (
-    col, expr, from_json
+    col, from_json
 )
 import uuid
 
@@ -18,6 +18,11 @@ class SparkInst:
     def __init__(self, app_name: str, batch_interval: int, kafka_output_topic: str):
         """
         Initializes a Spark instance with the given application name, batch interval, and Kafka topic.
+        In here we enable:
+            - spark job attachment with a kafka stream
+            - kafka event schema being processed based on all 3 streams
+            - instantiate a session with [ERROR] level ogging
+            
 
         Args:
             app_name (str): The name of the Spark application.
@@ -48,9 +53,23 @@ class SparkInst:
         
 
     def get_session(self):
+        """
+        helper function to return a spark session instances
+        """
         return self.spark
     
     def attach_kafka_stream(self, topic_name:str, hostip:str, watermark_time:str):
+        """
+        This method sets up a connection to a Kafka topic and processes incoming streaming 
+        data using Spark. It expects data in JSON format and parses it according to the 
+        predefined schema (`self.eventSchema`). A watermark is applied to enable proper 
+        event-time aggregation and handling of late data.
+        
+        readStream parameters: 
+        - topic_name: the name of kafka stream, spark session subscribe to
+        - hostip: ip address where we can communicate with kafka
+        - watermark: time threshold to allow data coming out late outside of window being specifie in each queries.
+        """
         return (
             self.spark.readStream
             .format("kafka")
@@ -67,7 +86,8 @@ class SparkInst:
 
     def essentialData_broadcast(self, sdf):
         """
-        Filter a Spark DataFrame by topic_id and broadcast it.
+        Filter a Spark DataFrame by topic_id and broadcast it as a part of UDF later on
+        accross different subjobs.
 
         Args:
             sdf (DataFrame): Spark DataFrame
@@ -97,21 +117,11 @@ class DbWriter():
         self.violation_coll  = None
 
     def open(self, partition_id: str, epoch_id: str) -> bool:
-        from pymongo import MongoClient
         self.client = MongoClient(host=self.mongo_host, port=self.mongo_port)
         self.violation_coll  = self.client[self.mongo_db][self.mongo_coll]
-
-        # Ensure index exists on car_plate and date
-        self.violation_coll.create_index([("car_plate", 1), ("date", -1)], name="idx_compound_plate_date")
-        self.violation_coll.create_index([("violation_id", 1)],unique=True, name="idx_violation_id")
-        self.violation_coll.create_index([("date", 1)],name="idx_date")
-        self.violation_coll.create_index([("violations.camera_id_start", 1)],name="idx_camera_start")
-        self.violation_coll.create_index([("violations.camera_id_end", 1)],name="idx_camera_end")
-        self.violation_coll.create_index([("date", 1), ("violations.measured_speed", -1)], name="idx_measured_speed")
-        self.violation_coll.create_index([("violations.timestamp_start", 1)])
         return True
 
-    def process(self, row):
+    def process(self, row)-> None:
         try:
             print(f"\nProcessing: {row.asDict()}")
             t_a = row.timestamp_a
@@ -167,6 +177,7 @@ class DbWriter():
                 })
             if row.speed_flag_average_ab:
                 violations_b.append({
+                    "violation_id": str(uuid.uuid4()),
                     "type": "average",
                     "camera_id_start": row.camera_id_a,
                     "camera_id_end": row.camera_id_b,
@@ -176,6 +187,7 @@ class DbWriter():
                 })
             if row.speed_flag_average_bc:
                 violations_c.append({
+                    "violation_id": str(uuid.uuid4()),
                     "type": "average",
                     "camera_id_start": row.camera_id_b,
                     "camera_id_end": row.camera_id_c,
@@ -195,7 +207,6 @@ class DbWriter():
             elif len(violations_a) > 0:
                 self.violation_coll.insert_one(
                     {
-                        "violation_id": str(uuid.uuid4()),  # or f"{data['car_plate']}_{date_bucket
                         "car_plate":    row.car_plate,
                         "date":         date_bucket_a,
                         "violations":   violations_a
@@ -230,7 +241,6 @@ class DbWriter():
             elif len(violations_c) > 0:
                 self.violation_coll.insert_one(
                     {
-                        "violation_id": str(uuid.uuid4()),  # or f"{data['car_plate']}_{date_bucket.date()}"
                         "car_plate":    row.car_plate,
                         "date":         date_bucket_c,
                         "violations":   violations_c
@@ -250,59 +260,4 @@ class DbWriter():
             print(f"[DbWriter][ERROR] task shutting down due to: {error}")
         if self.client:
             self.client.close()
-            
-# for debugging, print on console
-class ConsoleWriter:
-    def open(self, partition_id, epoch_id):
-#         self.mongo_client = MongoClient(
-#             host=f'172.22.32.1',
-#             port=27017
-#         )
-#         self.db = self.mongo_client['fit3182_db']
-#         self.camera_coll = self.db.Camera
-        print("started")
-        return True
-    
-    def process(self, row):
-        data = row.asDict()
-        print(f"\ncurrent data: {data}")
-#         currentCameraData = self.camera_coll.find_one(
-#                     {"_id": data["camera_id"]}
-#                 )
-#         print(f'current camera: {currentCameraData["_id"]}')
-#         if float(currentCameraData["speed_limit"]) < float(data["speed_reading"]):
-#             print(f"instant speed violated: {currentCameraData['speed_limit']} vs {data['speed_reading']}")
-# #             self.db["Violation"].insert_one(self.createJsonSchema(data)) 
-#             print(f"Generated schema: {self.createJsonSchema(data, currentCameraData['speed_limit'])}")
         
-    # called once all rows have been processed (possibly with error)
-    def close(self, err):
-#         self.mongo_client.close()
-        print("done")
-        
-    def createJsonSchema(self, data, speed_limit):
-        # parse timestamp into a datetime if needed
-        ts = data["timestamp"]
-        if isinstance(ts, str):
-            ts = datetime.fromisoformat(ts)
-
-        # compute the “date” bucket = midnight on that day
-        date_bucket = datetime(ts.year, ts.month, ts.day)
-
-        # build the single-infraction subdoc
-        violation = {
-            "type":             "instantaneous",
-            "camera_id_start":  data["camera_id"],
-            "camera_id_end":    None,
-            "timestamp_start":  ts,
-            "timestamp_end":    None,
-            "measured_speed":   float(data["speed_reading"]),
-            "speed_limit":      float(speed_limit)
-        }
-
-        return {
-            "violation_id": str(uuid.uuid4()),  # or f"{data['car_plate']}_{date_bucket.date()}"
-            "car_plate":    data["car_plate"],
-            "date":         date_bucket,
-            "violations":   [violation]
-        }
