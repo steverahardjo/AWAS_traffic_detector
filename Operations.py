@@ -2,12 +2,12 @@ import os
 import pandas as pd
 os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-10_2.12:3.3.0,org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.mongodb.spark:mongo-spark-connector_2.12:10.1.1 pyspark-shell'
 from pymongo import MongoClient
-import datetime
+from datetime import datetime
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
 
 from pyspark.sql.types import (
-    StructType, StringType, IntegerType, DoubleType, TimestampType
+    StructType, StringType, IntegerType, DoubleType, TimestampType, BooleanType
 )
 from pyspark.sql.functions import (
     col, expr, from_json
@@ -38,6 +38,14 @@ class SparkInst:
                         .add("sent_at", TimestampType())
         self.spark = SparkSession.builder.appName(app_name).master("local[*]").getOrCreate()
         
+        # immediately bump the KafkaDataConsumer logger to ERROR
+        sc = self.spark.sparkContext
+        jvm = sc._jvm
+        LogManager = jvm.org.apache.log4j.LogManager
+        Level      = jvm.org.apache.log4j.Level
+        kafka_logger = LogManager.getLogger("org.apache.spark.sql.kafka010.KafkaDataConsumer")
+        kafka_logger.setLevel(Level.ERROR)
+        
 
     def get_session(self):
         return self.spark
@@ -48,7 +56,7 @@ class SparkInst:
             .format("kafka")
             .option("kafka.bootstrap.servers", f"{hostip}:9092")
             .option("subscribe", topic_name)
-            .option("startingOffsets", "earliest")    # ← add this
+            .option("startingOffsets", "earliest")
             .load()
             .selectExpr("CAST(value AS STRING) as json")
             .select(from_json(col("json"), self.eventSchema).alias("data"))
@@ -79,97 +87,169 @@ class SparkInst:
 
 
 
-class DbWriter:
-    """
-    Writes speed violation data to MongoDB.  This version is refactored.
-    """
-    def __init__(self, spark: SparkSession, mongo_uri: str, mongo_db: str, mongo_collection: str):
-        """
-        Initialize the DbWriter.
+class DbWriter():
+    def __init__(self, mongo_host, mongo_port, mongo_db, mongo_coll):
+        self.mongo_host = mongo_host
+        self.mongo_port = mongo_port
+        self.mongo_db   = mongo_db
+        self.mongo_coll = mongo_coll
+        self.client     = None
+        self.violation_coll  = None
 
-        Args:
-            spark (SparkSession): The SparkSession (unused in this version, but kept for consistency).
-            mongo_uri (str): The MongoDB connection URI.
-            mongo_db (str): The name of the MongoDB database.
-            mongo_collection (str): The name of the MongoDB collection for violations.
-        """
-        self.spark = spark # Keep spark, even if not used.
-        self.mongo_uri = mongo_uri
-        self.mongo_db_name = mongo_db
-        self.violation_collection_name = mongo_collection
-        self.mongo_client = None  # Initialize in open()
-        self.db = None          # Initialize in open()
-        self.violation_coll = None  # Initialize in open()
+    def open(self, partition_id: str, epoch_id: str) -> bool:
+        from pymongo import MongoClient
+        self.client = MongoClient(host=self.mongo_host, port=self.mongo_port)
+        self.violation_coll  = self.client[self.mongo_db][self.mongo_coll]
 
-    def open(self, partition_id:str, epoch_id:str)->bool:
-        """
-        Open a connection to MongoDB.  Called at the start of each partition.
-
-        Args:
-            partition_id: The ID of the partition.
-            epoch_id: The ID of the epoch.
-
-        Returns:
-            bool: True if the connection is successfully opened.
-        """
-        self.mongo_client = MongoClient(self.mongo_uri)
-        self.db = self.mongo_client[self.mongo_db_name]
-        self.violation_coll = self.db[self.violation_collection_name]
+        # Ensure index exists on car_plate and date
+        self.violation_coll.create_index([("car_plate", 1), ("date", -1)], name="idx_compound_plate_date")
+        self.violation_coll.create_index([("violation_id", 1)],unique=True, name="idx_violation_id")
+        self.violation_coll.create_index([("date", 1)],name="idx_date")
+        self.violation_coll.create_index([("violations.camera_id_start", 1)],name="idx_camera_start")
+        self.violation_coll.create_index([("violations.camera_id_end", 1)],name="idx_camera_end")
+        self.violation_coll.create_index([("date", 1), ("violations.measured_speed", -1)], name="idx_measured_speed")
+        self.violation_coll.create_index([("violations.timestamp_start", 1)])
         return True
 
-    def close(self, err:str)->None:
-        """
-        Close the connection to MongoDB.  Called at the end of processing.
+    def process(self, row):
+        try:
+            print(f"\nProcessing: {row.asDict()}")
+            t_a = row.timestamp_a
+            t_b = row.timestamp_b
+            t_c = row.timestamp_c
 
-        Args:
-            err: Any error that occurred during processing.  If None, processing was successful.
-        """
-        if self.mongo_client:
-            self.mongo_client.close()
+            if isinstance(t_a, str):
+                t_a = datetime.fromisoformat(t_a)
 
-    def add_violation(self, data, speed_limit, speed_reading):
-        """
-        Adds a violation record to the MongoDB collection.
+            if isinstance(t_b, str):
+                t_b = datetime.fromisoformat(t_b)
 
-        Args:
-            data:  A dictionary containing the violation data.
-            speed_limit: The speed limit for the violation.
-        """
-        ts = data["timestamp"]
-        if isinstance(ts, str):
-            ts = datetime.fromisoformat(ts)
-        date_bucket = datetime(ts.year, ts.month, ts.day)
-        violation = {
-            "type": "instantaneous",
-            "camera_id_start": data["camera_id"],
-            "camera_id_end": None,
-            "timestamp_start": ts,
-            "timestamp_end": None,
-            "measured_speed": speed_reading,
-            "speed_limit": speed_limit,
-        }
+            if isinstance(t_c, str):
+                t_c = datetime.fromisoformat(t_c)
 
-        existing_violation = self.violation_coll.find_one( # Use self.violation_coll
-            {"car_plate": data["car_plate"], "date": date_bucket}
-        )
+            date_bucket_a = datetime(t_a.year, t_a.month, t_a.day)
+            date_bucket_b = datetime(t_b.year, t_b.month, t_b.day)
+            date_bucket_c = datetime(t_c.year, t_c.month, t_c.day)
 
-        if existing_violation:
-            original_violations = existing_violation["violations"]
-            original_violations.append(violation)
-            self.violation_coll.update_one(  # Use self.violation_coll
-                {"car_plate": data["car_plate"], "date": date_bucket},
-                {"$set": {"violations": original_violations}},
-            )
-            print(f"Added violation to car_plate {data['car_plate']} at {date_bucket}")
-        else:
-            self.violation_coll.insert_one( # Use self.violation_coll
-                {
+            violations_a = []
+            violations_b = []
+            violations_c = []
+
+            if row.speed_flag_instant_a:
+                violations_a.append({
                     "violation_id": str(uuid.uuid4()),
-                    "car_plate": data["car_plate"],
-                    "date": date_bucket,
-                    "violations": [violation],
-                }
-            )
+                    "type": "instantaneous",
+                    "camera_id_start": row.camera_id_a,
+                    "camera_id_end": None,
+                    "timestamp_start": t_a,
+                    "timestamp_end": None,
+                    "measured_speed": row.speed_reading_a
+                })
+            if row.speed_flag_instant_b:
+                violations_b.append({
+                    "violation_id": str(uuid.uuid4()),
+                    "type": "instantaneous",
+                    "camera_id_start": row.camera_id_b,
+                    "camera_id_end": None,
+                    "timestamp_start": t_b,
+                    "timestamp_end": None,
+                    "measured_speed": row.speed_reading_b
+                })
+            if row.speed_flag_instant_c:
+                violations_c.append({
+                    "violation_id": str(uuid.uuid4()),
+                    "type": "instantaneous",
+                    "camera_id_start": row.camera_id_c,
+                    "camera_id_end": None,
+                    "timestamp_start": t_c,
+                    "timestamp_end": None,
+                    "measured_speed": row.speed_reading_c
+                })
+            if row.speed_flag_average_ab:
+                violations_b.append({
+                    "type": "average",
+                    "camera_id_start": row.camera_id_a,
+                    "camera_id_end": row.camera_id_b,
+                    "timestamp_start": t_a,
+                    "timestamp_end": t_b,
+                    "measured_speed": row.avg_speed_reading_ab
+                })
+            if row.speed_flag_average_bc:
+                violations_c.append({
+                    "type": "average",
+                    "camera_id_start": row.camera_id_b,
+                    "camera_id_end": row.camera_id_c,
+                    "timestamp_start": t_b,
+                    "timestamp_end": t_c,
+                    "measured_speed": row.avg_speed_reading_bc
+                })
+
+            existing_a = self.violation_coll.find_one({"car_plate": row.car_plate, "date": date_bucket_a})
+            if existing_a and len(violations_a) > 0:
+                for violation in violations_a:
+                    existing_a["violations"].append(violation)
+                    self.violation_coll.update_one(
+                        {"car_plate": row.car_plate, "date": date_bucket_a},
+                        {"$set": {"violations": existing_a["violations"]}},
+                    )
+            elif len(violations_a) > 0:
+                self.violation_coll.insert_one(
+                    {
+                        "violation_id": str(uuid.uuid4()),  # or f"{data['car_plate']}_{date_bucket
+                        "car_plate":    row.car_plate,
+                        "date":         date_bucket_a,
+                        "violations":   violations_a
+                    }
+                )
+
+            existing_b = self.violation_coll.find_one({"car_plate": row.car_plate, "date": date_bucket_b})
+            if existing_b and len(violations_b) > 0:
+                for violation in violations_b:
+                    existing_b["violations"].append(violation)
+                    self.violation_coll.update_one(
+                        {"car_plate": row.car_plate, "date": date_bucket_b},
+                        {"$set": {"violations": existing_b["violations"]}},
+                    )
+            elif len(violations_b) > 0:
+                self.violation_coll.insert_one(
+                    {
+                        "car_plate":    row.car_plate,
+                        "date":         date_bucket_b,
+                        "violations":   violations_b
+                    }
+                )
+
+            existing_c = self.violation_coll.find_one({"car_plate": row.car_plate, "date": date_bucket_c})                                    
+            if existing_c and len(violations_c) > 0:
+                for violation in violations_c:
+                    existing_c["violations"].append(violation)
+                    self.violation_coll.update_one(
+                        {"car_plate": row.car_plate, "date": date_bucket_c},
+                        {"$set": {"violations": existing_c["violations"]}},
+                    )
+            elif len(violations_c) > 0:
+                self.violation_coll.insert_one(
+                    {
+                        "violation_id": str(uuid.uuid4()),  # or f"{data['car_plate']}_{date_bucket.date()}"
+                        "car_plate":    row.car_plate,
+                        "date":         date_bucket_c,
+                        "violations":   violations_c
+                    }
+                )
+#             print(f"\nAdded violations: {sum([len(violations_a),len(violations_b),len(violations_c)])}")
+            if sum([len(violations_a),len(violations_b),len(violations_c)]) == 0 :
+                   print("No violations detected for {row.car_plate} from {t_a} to {t_c}")
+        except Exception as e:
+            # this will print on the executor logs
+            print(f"[DbWriter][ERROR] failed to process row {row}: {e}")
+            # optionally, you could write to a dead‐letter collection instead
+                                                  
+    def close(self, error):
+        if error:
+            # this also shows up in the executor log
+            print(f"[DbWriter][ERROR] task shutting down due to: {error}")
+        if self.client:
+            self.client.close()
             
 # for debugging, print on console
 class ConsoleWriter:

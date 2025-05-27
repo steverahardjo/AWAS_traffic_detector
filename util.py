@@ -144,7 +144,6 @@ class kafkaConsumer:
                 try:
                     message_value = message.value
                     print(f"[INFO] Received message: {message_value}")
-                    # Add your message processing logic here
                     
                 except Exception as msg_error:
                     print(f"[WARN] Error processing message: {msg_error}")
