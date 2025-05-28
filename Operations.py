@@ -269,6 +269,9 @@ class DbWriter:
             print(f"[DbWriter][ERROR] failed to process row {row}: {e}")
                                                   
     def close(self, error):
+        """
+        Close the connection with the mongoDB
+        """
         if error:
             # this also shows up in the executor log
             print(f"[DbWriter][ERROR] task shutting down due to: {error}")
@@ -276,6 +279,14 @@ class DbWriter:
             self.client.close()
             
     def retry_write(self, fn, *args, attempts=3, backoff=1, **kwargs):
+        """
+        Failsafe function to retry connection with mongoDB and try to write
+        Input:
+            fn: function being used
+            attempt: number of attempt to retry
+            backoff: The base backoff time in seconds (default: 1). The delay
+            between attempts will be `backoff * (attempt_number)`.
+        """
         for i in range(attempts):
             try:
                 return fn(*args, **kwargs)
