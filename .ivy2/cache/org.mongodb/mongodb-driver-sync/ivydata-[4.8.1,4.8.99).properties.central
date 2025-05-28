@@ -1,5 +1,12 @@
 #ivy cached data file for org.mongodb#mongodb-driver-sync;[4.8.1,4.8.99)
+<<<<<<< HEAD
 #Sun May 25 13:20:00 UTC 2025
 resolved.revision=4.8.2
 resolver=central
 resolved.time=1748179200877
+=======
+#Wed May 28 02:44:23 UTC 2025
+resolved.revision=4.8.2
+resolver=central
+resolved.time=1748400263396
+>>>>>>> aca212b48ce344af396db94316cbb3d327fe3e7d

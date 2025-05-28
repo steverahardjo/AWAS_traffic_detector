@@ -1,4 +1,4 @@
-car_plate,owner_name,owner_addr,vechicle_type,registration_date
+car_plate,owner_name,owner_addr,vehicle_type,registration_date
 FT 02,Goh Mei Wei,"943 Jalan Bukit Mawar, Kuala Lumpur",Coupe,2006-08-22T03:18:00
 DQZ 793,Muhammad bin Liyana,"946 Jalan Bukit Jelutong, Kuala Lumpur",SUV,2008-04-13T09:01:23
 GUT 393,Haziq bin Azlan,"900 Jalan Bukit Bintang, Kuala Lumpur",Sedan,2008-01-20T20:50:45

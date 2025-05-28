@@ -13,7 +13,7 @@ from typing import List
 
 
 class kafkaProducer:
-    def __init__(self, csv_path: str, kafka_server: str, producer_id: int, topic: str, batch_interval: float = 5):
+    def __init__(self, csv_path: str, kafka_server: str, producer_id: str, topic: str, batch_interval: float = 5):
         """
         Initialize Kafka Producer with all necessary parameters.
         
@@ -126,7 +126,7 @@ class kafkaConsumer:
                 self.kafka_topic,
                 bootstrap_servers=[f'{self.hostip}:9092'],
                 api_version=(0, 10),
-                value_deserializer=lambda x: loads(x.decode('ascii')),
+                value_deserializer=lambda x: json.loads(x.decode('ascii')),
                 auto_offset_reset=self.offset_time,
                 enable_auto_commit=True,
                 consumer_timeout_ms=1000

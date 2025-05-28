@@ -23,6 +23,7 @@ checkpoint/
 .local/
 /data
 stream_checkpoints_3/
+stream_checkpoints/
 result.csv/
 result.json/
 result.txt/
@@ -30,6 +31,8 @@ result.jsonl/
 result.jsonl.gz/
 result.jsonl.gz.part/
 result.jsonl.gz.part.1/
+.ipynb_checkpoints
+
 
 .local/
 .ipynb_checkpoints/
