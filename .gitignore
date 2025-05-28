@@ -23,6 +23,7 @@ checkpoint/
 .local/
 /data
 stream_checkpoints_3/
+stream_checkpoints_2/
 stream_checkpoints/
 result.csv/
 result.json/
