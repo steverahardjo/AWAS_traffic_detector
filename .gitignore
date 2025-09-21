@@ -41,3 +41,11 @@ result.jsonl.gz.part.1/
 data/
 .ivy2/
 
+# Ignore Python cache and bytecode files
+__pycache__/
+*.pyc
+
+# Ignore Jupyter notebooks checkpoint files
+.ipynb_checkpoints/
+
+
